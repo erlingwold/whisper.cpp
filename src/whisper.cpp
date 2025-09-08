@@ -35,6 +35,18 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <unordered_set>
+
+// whitelist of languages you care about
+static const std::unordered_set<std::string> g_supported_langs = {
+    "af","ar","hy","az","be","bs","bg","ca","zh","hr","cs","da","nl","en","et","fi","fr","gl","de",
+    "el","he","hi","hu","is","id","it","ja","kn","kk","ko","lv","lt","mk","ms","mr","mi","ne","no",
+    "fa","pl","pt","ro","ru","sr","sk","sl","es","sw","sv","tl","ta","th","tr","uk","ur","vi","cy"
+};
+
+static bool is_supported_lang(const std::string & code) {
+    return g_supported_langs.find(code) != g_supported_langs.end();
+}
 
 #if defined(WHISPER_BIG_ENDIAN)
 template<typename T>
@@ -6820,8 +6832,17 @@ int whisper_full_with_state(
             WHISPER_LOG_ERROR("%s: failed to auto-detect language\n", __func__);
             return -3;
         }
-        state->lang_id = lang_id;
-        params.language = whisper_lang_str(lang_id);
+
+	// apply whitelist 
+	const char * detected = whisper_lang_str(lang_id);
+	if (!is_supported_lang(detected)) {
+	    WHISPER_LOG_WARN("%s: unsupported language (%s, p=%.2f) – defaulting to English\n", __func__, detected, probs[whisper_lang_id(params.language)]);
+	    state->lang_id = whisper_lang_id("en");
+	    params.language = "en";
+	} else {
+	    state->lang_id = lang_id;
+	    params.language = detected;
+	}
 
         WHISPER_LOG_INFO("%s: auto-detected language: %s (p = %f)\n", __func__, params.language, probs[whisper_lang_id(params.language)]);
         if (params.detect_language) {
