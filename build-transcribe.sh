@@ -4,20 +4,33 @@ set -euo pipefail
 DIST=${1:-dist}
 mkdir -p "$DIST"
 
-echo "=== Configuring GPU build ==="
-cmake -DBUILD_SHARED_LIBS=off -DGGML_CUDA=1 -B build-gpu
+OS=$(uname -s)
 
-echo "=== Building GPU binary ==="
-cmake --build build-gpu -j --config Release
+if [ "$OS" = "Darwin" ]; then
+    echo "=== macOS detected: building with Metal ==="
+    cmake -DBUILD_SHARED_LIBS=off -B build-mac
+    cmake --build build-mac -j --config Release
+    cp build-mac/bin/whisper-cli "$DIST/transcribe"
+    echo "=== Done: $DIST/transcribe ==="
 
-echo "=== Configuring CPU build ==="
-cmake -DBUILD_SHARED_LIBS=off -B build-cpu
+elif [ "$OS" = "Linux" ]; then
+    echo "=== Linux detected: building GPU and CPU binaries ==="
 
-echo "=== Building CPU binary ==="
-cmake --build build-cpu -j --config Release
+    echo "--- Configuring GPU build ---"
+    cmake -DBUILD_SHARED_LIBS=off -DGGML_CUDA=1 -B build-gpu
+    echo "--- Building GPU binary ---"
+    cmake --build build-gpu -j --config Release
 
-echo "=== Packaging ==="
-cp build-gpu/bin/whisper-cli "$DIST/transcribe"
-cp build-cpu/bin/whisper-cli "$DIST/transcribe_cpu"
+    echo "--- Configuring CPU build ---"
+    cmake -DBUILD_SHARED_LIBS=off -B build-cpu
+    echo "--- Building CPU binary ---"
+    cmake --build build-cpu -j --config Release
 
-echo "=== Done: $DIST/transcribe and $DIST/transcribe_cpu ==="
+    cp build-gpu/bin/whisper-cli "$DIST/transcribe"
+    cp build-cpu/bin/whisper-cli "$DIST/transcribe_cpu"
+    echo "=== Done: $DIST/transcribe and $DIST/transcribe_cpu ==="
+
+else
+    echo "Unsupported OS: $OS" >&2
+    exit 1
+fi
