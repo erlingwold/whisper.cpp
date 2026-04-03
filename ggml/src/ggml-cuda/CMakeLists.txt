@@ -14,8 +14,10 @@ if (CUDAToolkit_FOUND)
         # 75     == Turing, int8 tensor cores
         # 80     == Ampere, asynchronous data loading, faster tensor core instructions
         # 86     == RTX 3000, needs CUDA v11.1
-        # 89     == RTX 4000, needs CUDA v11.8
-        # 120    == Blackwell, needs CUDA v12.8, FP4 tensor cores
+        # 89     == RTX 4000 / L40, needs CUDA v11.8
+        # 90     == Hopper (H100/H200/GH200), needs CUDA v11.8
+        # 100    == Blackwell data center (B100/B200/GB200), needs CUDA v12.8
+        # 120    == Blackwell consumer (RTX 5000 series / GB10x), needs CUDA v12.8, FP4 tensor cores
         #
         # XX-virtual == compile CUDA code as PTX, do JIT compilation to binary code on first run
         # XX-real    == compile CUDA code as device code for this specific architecture
@@ -33,7 +35,8 @@ if (CUDAToolkit_FOUND)
             list(APPEND CMAKE_CUDA_ARCHITECTURES 75-virtual 80-virtual 86-real)
 
             if (CUDAToolkit_VERSION VERSION_GREATER_EQUAL "11.8")
-                list(APPEND CMAKE_CUDA_ARCHITECTURES 89-real)
+                # 90-virtual embeds Hopper PTX so future architectures beyond sm_90 can JIT-compile at runtime.
+                list(APPEND CMAKE_CUDA_ARCHITECTURES 89-real 90-real 90-virtual)
             endif()
 
             if (CUDAToolkit_VERSION VERSION_GREATER_EQUAL "12.8")
@@ -47,7 +50,8 @@ if (CUDAToolkit_FOUND)
                 #     check Modules/Internal/CMakeCUDAArchitecturesValidate.cmake in the CMake git repository instead.
                 # However, the architectures 120a-real and 121a-real should work with basically any CMake version and
                 #     until the release of e.g. Rubin there is no benefit to shipping virtual architectures for Blackwell.
-                list(APPEND CMAKE_CUDA_ARCHITECTURES 120a-real)
+                # 100a targets Blackwell data center GPUs (B100/B200/GB200); 120a targets consumer Blackwell (RTX 5000 / GB10x).
+                list(APPEND CMAKE_CUDA_ARCHITECTURES 100a-real 120a-real)
             endif()
             if (CUDAToolkit_VERSION VERSION_GREATER_EQUAL "12.9")
                 list(APPEND CMAKE_CUDA_ARCHITECTURES 121a-real)
