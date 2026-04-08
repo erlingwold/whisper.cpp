@@ -14,7 +14,10 @@ if (CUDAToolkit_FOUND)
         # 75     == Turing, int8 tensor cores
         # 80     == Ampere, asynchronous data loading, faster tensor core instructions
         # 86     == RTX 3000, needs CUDA v11.1
-        # 89     == RTX 4000, needs CUDA v11.8
+        # 89     == RTX 4000 / L40, needs CUDA v11.8
+        # 90     == Hopper (H100/H200/GH200), needs CUDA v11.8
+        # 100    == Blackwell data center (B100/B200/GB200), needs CUDA v12.8
+        # 120    == Blackwell consumer (RTX 5000 series / GB10x), needs CUDA v12.8, FP4 tensor cores
         #
         # XX-virtual == compile CUDA code as PTX, do JIT compilation to binary code on first run
         # XX-real    == compile CUDA code as device code for this specific architecture
@@ -22,20 +25,12 @@ if (CUDAToolkit_FOUND)
         #
         # The default behavior for a non-native is to build virtual architectures as needed to cover all features needed
         #     for best performance and to also build real architectures for the most commonly used GPUs.
+        # Lean set: require sm_75+, native code for Turing & Ampere,
+        # Hopper PTX for forward compat with sm_90+ (including Blackwell via JIT).
         if (GGML_NATIVE AND CUDAToolkit_VERSION VERSION_GREATER_EQUAL "11.6" AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
             set(CMAKE_CUDA_ARCHITECTURES "native")
-        elseif(GGML_CUDA_F16 OR GGML_CUDA_DMMV_F16)
-            if (CUDAToolkit_VERSION VERSION_GREATER_EQUAL "11.8")
-                set(CMAKE_CUDA_ARCHITECTURES "60-virtual;61-virtual;70-virtual;75-virtual;80-virtual;86-real;89-real")
-            else()
-                set(CMAKE_CUDA_ARCHITECTURES "60-virtual;61-virtual;70-virtual;75-virtual;80-virtual;86-real")
-            endif()
         else()
-            if (CUDAToolkit_VERSION VERSION_GREATER_EQUAL "11.8")
-                set(CMAKE_CUDA_ARCHITECTURES "50-virtual;61-virtual;70-virtual;75-virtual;80-virtual;86-real;89-real")
-            else()
-                set(CMAKE_CUDA_ARCHITECTURES "50-virtual;61-virtual;70-virtual;75-virtual;80-virtual;86-real")
-            endif()
+            set(CMAKE_CUDA_ARCHITECTURES "75-real;80-real;90-virtual")
         endif()
     endif()
     message(STATUS "Using CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")
